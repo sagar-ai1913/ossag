@@ -1,6 +1,6 @@
 # Infobox Explorer
 
-**Team Number:** [XX]
+**Team Number:** [W113]
 **Track:** Build with Open Source
 **Event:** Open Source Day, Build with Wikimedia's Structured Wikipedia Dataset
 
