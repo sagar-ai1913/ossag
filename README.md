@@ -8,10 +8,10 @@
 
 | Name | GitHub Username | Contribution |
 |------|-----------------|--------------|
-| S J | @username | e.g. Backend: fetching and parsing infobox data (`app.py`) |
-| Member 2 | @username | e.g. Frontend: page layout and styling (`index.html`) |
-| Member 3 | @username | e.g. Testing, README, bonus features |
-| Member 4 (if any) | @username | e.g. Dark mode / search improvements |
+| Sagar s | sagar-ai1913 |  Backend: fetching and parsing infobox data (`app.py`) |
+|Mahmmad Sahil  | sahilbhaskar1925-hue |  Frontend: page layout and styling (`index.html`) |
+| Narahari K  | narahariiii  |  Testing, README, bonus features |
+| Ganesh Mamani | ganeshmamani |  Dark mode / search improvements |
 
 ## About the Project
 
