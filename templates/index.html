@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if summary %}{{ summary.title }} · {% endif %}Infobox Explorer</title>
+  <script>
+    /* Apply saved theme before the page paints (no flash) */
+    (function () {
+      var t = localStorage.getItem("theme") ||
+        (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+  <style>
+    :root {
+      --bg:#070b14; --text:#e8edf7; --muted:#8b97b1; --glass:rgba(255,255,255,.06);
+      --border:rgba(255,255,255,.12); --accent:#22d3a0; --accent2:#6366f1; --shadow:0 20px 50px rgba(0,0,0,.35);
+    }
+    [data-theme="light"] {
+      --bg:#f2f5fb; --text:#111a2e; --muted:#5b6780; --glass:rgba(255,255,255,.75);
+      --border:rgba(15,23,42,.1); --shadow:0 20px 50px rgba(30,41,90,.12);
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+      font-family:"Segoe UI",system-ui,Arial,sans-serif; overflow-x:hidden; transition:background .4s,color .4s;
+    }
+
+    /* Animated background orbs */
+    .bg { position:fixed; inset:0; z-index:-1; overflow:hidden; }
+    .orb { position:absolute; border-radius:50%; filter:blur(90px); opacity:.45; animation:float 16s ease-in-out infinite; }
+    .o1 { width:460px; height:460px; background:var(--accent2); top:-120px; left:-100px; }
+    .o2 { width:400px; height:400px; background:var(--accent); bottom:-120px; right:-80px; animation-delay:-5s; }
+    .o3 { width:300px; height:300px; background:#f472b6; top:40%; left:55%; opacity:.25; animation-delay:-10s; }
+    @keyframes float { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(50px,-60px) scale(1.15);} }
+
+    .theme {
+      position:fixed; top:18px; right:18px; width:44px; height:44px; border-radius:50%; cursor:pointer;
+      border:1px solid var(--border); background:var(--glass); backdrop-filter:blur(12px);
+      font-size:18px; color:var(--text); transition:transform .3s;
+    }
+    .theme:hover { transform:rotate(25deg) scale(1.1); }
+
+    .wrap { max-width:980px; margin:0 auto; padding:56px 18px 80px; }
+
+    /* Hero */
+    .hero { text-align:center; margin-bottom:28px; animation:fadeUp .8s cubic-bezier(.2,.8,.2,1) backwards; }
+    .badge {
+      display:inline-block; padding:6px 14px; border-radius:999px; font-size:13px; color:var(--accent);
+      border:1px solid var(--border); background:var(--glass); backdrop-filter:blur(10px);
+    }
+    h1 { font-size:clamp(38px,7vw,68px); margin:16px 0 8px; letter-spacing:-1.5px; line-height:1.05; }
+    .grad {
+      background:linear-gradient(90deg,var(--accent),var(--accent2),#f472b6,var(--accent));
+      background-size:300% 100%; -webkit-background-clip:text; background-clip:text; color:transparent;
+      animation:shift 6s linear infinite;
+    }
+    @keyframes shift { to { background-position:300% 0; } }
+    .sub { color:var(--muted); font-size:18px; margin:0; }
+    .hero.compact h1 { font-size:clamp(30px,5vw,44px); }
+    .hero.compact .sub { display:none; }
+
+    /* Search */
+    .search {
+      display:flex; align-items:center; gap:10px; padding:8px 8px 8px 20px; border-radius:18px;
+      background:var(--glass); backdrop-filter:blur(16px); border:1px solid var(--border);
+      box-shadow:var(--shadow); transition:box-shadow .3s,border-color .3s; animation:fadeUp .8s .1s cubic-bezier(.2,.8,.2,1) backwards;
+    }
+    .search:focus-within { border-color:var(--accent); box-shadow:0 0 0 4px rgba(34,211,160,.18),var(--shadow); }
+    .search input { flex:1; border:none; outline:none; background:transparent; color:var(--text); font-size:18px; padding:12px 0; }
+    .search input::placeholder { color:var(--muted); }
+    .search button {
+      border:none; cursor:pointer; padding:14px 26px; border-radius:12px; font-size:16px; font-weight:600; color:#04140e;
+      background:linear-gradient(135deg,var(--accent),#7dd3fc); transition:transform .2s,box-shadow .2s;
+    }
+    .search button:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(34,211,160,.4); }
+
+    .chips { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:20px; animation:fadeUp .8s .2s cubic-bezier(.2,.8,.2,1) backwards; }
+    .chip {
+      padding:8px 16px; border-radius:999px; font-size:14px; text-decoration:none; color:var(--text);
+      border:1px solid var(--border); background:var(--glass); transition:all .25s;
+    }
+    .chip:hover { transform:translateY(-3px); border-color:var(--accent); color:var(--accent); }
+
+    /* Loader */
+    #loader { display:none; text-align:center; padding:60px 0; color:var(--muted); }
+    #loader.show { display:block; }
+    .spin { width:54px; height:54px; margin:0 auto 14px; border-radius:50%; border:4px solid var(--border); border-top-color:var(--accent); animation:rot .8s linear infinite; }
+    @keyframes rot { to { transform:rotate(360deg); } }
+
+    .error { margin-top:28px; padding:16px 20px; border-radius:14px; background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.4); color:#f87171; animation:fadeUp .5s backwards; }
+
+    /* Profile card */
+    .profile {
+      display:flex; gap:28px; align-items:center; margin-top:32px; padding:28px; border-radius:24px;
+      background:var(--glass); backdrop-filter:blur(16px); border:1px solid var(--border); box-shadow:var(--shadow);
+      animation:fadeUp .8s cubic-bezier(.2,.8,.2,1) backwards;
+    }
+    .photo { flex:0 0 auto; padding:4px; border-radius:24px; background:linear-gradient(135deg,var(--accent),var(--accent2),#f472b6); animation:bob 5s ease-in-out infinite; }
+    .photo img { display:block; width:200px; height:200px; object-fit:cover; border-radius:20px; }
+    @keyframes bob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
+    .info h2 { margin:0 0 8px; font-size:34px; letter-spacing:-.5px; }
+    .tag { display:inline-block; padding:4px 12px; border-radius:999px; font-size:13px; color:var(--accent); background:rgba(34,211,160,.12); margin-bottom:12px; }
+    #extract { margin:0 0 14px; line-height:1.65; color:var(--muted); }
+    #extract.clamp { display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
+    .actions { display:flex; flex-wrap:wrap; gap:10px; }
+    .ghost {
+      padding:9px 16px; border-radius:10px; font-size:14px; cursor:pointer; text-decoration:none; color:var(--text);
+      background:transparent; border:1px solid var(--border); transition:all .25s;
+    }
+    .ghost:hover { border-color:var(--accent); color:var(--accent); transform:translateY(-2px); }
+    .pills { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+    .pills span { padding:6px 14px; border-radius:10px; font-size:13px; color:var(--muted); background:rgba(127,127,127,.12); }
+    .pills b { color:var(--accent); font-size:16px; }
+
+    /* Facts */
+    .toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin:36px 0 16px; }
+    .toolbar h3 { margin:0; font-size:22px; }
+    .toolbar input {
+      padding:10px 16px; width:230px; max-width:100%; border-radius:12px; outline:none; font-size:14px;
+      color:var(--text); background:var(--glass); border:1px solid var(--border);
+    }
+    .toolbar input:focus { border-color:var(--accent); }
+    .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); }
+    .card {
+      display:flex; gap:14px; align-items:flex-start; padding:18px; border-radius:18px; cursor:pointer;
+      background:var(--glass); backdrop-filter:blur(12px); border:1px solid var(--border);
+      transition:transform .15s ease-out,border-color .3s,box-shadow .3s;
+      animation:fadeUp .6s cubic-bezier(.2,.8,.2,1) backwards; animation-delay:calc(var(--i) * 55ms + 250ms);
+    }
+    .card:hover { border-color:var(--accent); box-shadow:0 14px 34px rgba(34,211,160,.15); }
+    .card .ico { font-size:26px; width:48px; height:48px; flex:0 0 auto; display:grid; place-items:center; border-radius:14px; background:rgba(127,127,127,.14); }
+    .card .label { font-size:12px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); }
+    .card .value { margin-top:4px; font-size:16px; font-weight:600; line-height:1.4; word-break:break-word; }
+    .card.hide { display:none; }
+    .empty { text-align:center; color:var(--muted); padding:30px; }
+
+    #toast {
+      position:fixed; bottom:28px; left:50%; transform:translate(-50%,30px); opacity:0; pointer-events:none;
+      padding:12px 22px; border-radius:12px; background:var(--accent); color:#04140e; font-weight:600; transition:all .35s;
+    }
+    #toast.show { opacity:1; transform:translate(-50%,0); }
+    .foot { text-align:center; margin-top:50px; color:var(--muted); font-size:13px; }
+
+    @keyframes fadeUp { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:none; } }
+    @media (max-width:640px) { .profile { flex-direction:column; text-align:center; } .search button { padding:12px 16px; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none !important; transition:none !important; } }
+  </style>
+</head>
+<body>
+  <div class="bg"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
+  <button class="theme" id="theme" aria-label="Toggle light and dark theme">🌙</button>
+
+  <main class="wrap">
+    <header class="hero {% if summary or error %}compact{% endif %}">
+      <span class="badge">✦ Powered by Wikipedia</span>
+      <h1>Infobox <span class="grad">Explorer</span></h1>
+      <p class="sub">Type any topic and get its key facts in a blink.</p>
+    </header>
+
+    <form class="search" method="get" action="/">
+      <span>🔍</span>
+      <input type="text" name="q" value="{{ topic }}" placeholder="Search a country, person, company..." autocomplete="off" autofocus>
+      <button type="submit">Explore</button>
+    </form>
+
+    {% if not summary %}
+    <div class="chips">
+      {% for s in ["India", "Albert Einstein", "Tesla, Inc.", "Prayagraj", "Mount Everest", "Google"] %}
+        <a class="chip" href="/?q={{ s }}">{{ s }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div id="loader"><div class="spin"></div>Fetching facts from Wikipedia...</div>
+
+    {% if error %}<div class="error">😕 {{ error }}</div>{% endif %}
+
+    {% if summary %}
+    <section class="profile">
+      {% if summary.thumbnail %}
+        <div class="photo"><img src="{{ summary.thumbnail.source }}" alt="{{ summary.title }}"></div>
+      {% endif %}
+      <div class="info">
+        <h2>{{ summary.title }}</h2>
+        {% if summary.description %}<span class="tag">{{ summary.description }}</span>{% endif %}
+        <p id="extract" class="clamp">{{ summary.extract }}</p>
+        <div class="actions">
+          <button class="ghost" id="more">Read more ▾</button>
+          <a class="ghost" href="{{ summary.content_urls.desktop.page }}" target="_blank">Open on Wikipedia ↗</a>
+        </div>
+        <div class="pills">
+          <span><b class="count" data-to="{{ facts|length }}">0</b> facts found</span>
+          <span><b class="count" data-to="{{ summary.extract.split()|length }}">0</b> words in summary</span>
+        </div>
+      </div>
+    </section>
+
+    {% if facts %}
+    <div class="toolbar">
+      <h3>⚡ Key facts</h3>
+      <input type="text" id="filter" placeholder="Filter facts...">
+    </div>
+    <div class="grid" id="grid">
+      {% for f in facts %}
+      <article class="card" style="--i:{{ loop.index0 }}" data-text="{{ (f.label ~ ' ' ~ f.value)|lower }}" title="Click to copy">
+        <div class="ico">{{ f.icon }}</div>
+        <div>
+          <div class="label">{{ f.label }}</div>
+          <div class="value">{{ f.value }}</div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    <div class="empty" id="empty" style="display:none">No facts match your filter.</div>
+    {% else %}
+      <div class="error">This article has no infobox. Try a country, person or company.</div>
+    {% endif %}
+    {% endif %}
+
+    <p class="foot">Built with Flask · Data from Wikipedia</p>
+  </main>
+
+  <div id="toast">Copied!</div>
+
+  <script>
+    var root = document.documentElement, themeBtn = document.getElementById("theme");
+    function icon() { themeBtn.textContent = root.getAttribute("data-theme") === "dark" ? "🌙" : "☀️"; }
+    icon();
+    themeBtn.onclick = function () {
+      var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next); localStorage.setItem("theme", next); icon();
+    };
+
+    /* Show the loader while the next page is being fetched */
+    var loader = document.getElementById("loader");
+    document.querySelectorAll(".search, .chip").forEach(function (el) {
+      el.addEventListener(el.tagName === "FORM" ? "submit" : "click", function () { loader.classList.add("show"); });
+    });
+
+    /* Count-up numbers */
+    document.querySelectorAll(".count").forEach(function (el) {
+      var to = +el.dataset.to, start = performance.now(), dur = 1200;
+      (function tick(now) {
+        var p = Math.min((now - start) / dur, 1);
+        el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) requestAnimationFrame(tick);
+      })(start);
+    });
+
+    /* Read more / less */
+    var more = document.getElementById("more"), ext = document.getElementById("extract");
+    if (more) more.onclick = function () {
+      var open = ext.classList.toggle("clamp");
+      more.textContent = open ? "Read more ▾" : "Show less ▴";
+    };
+
+    /* 3D tilt on cards + click to copy */
+    var toast = document.getElementById("toast");
+    document.querySelectorAll(".card").forEach(function (card) {
+      card.addEventListener("mousemove", function (e) {
+        var r = card.getBoundingClientRect();
+        var x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+        card.style.transform = "perspective(700px) rotateX(" + (-y * 10) + "deg) rotateY(" + (x * 10) + "deg) translateY(-4px)";
+      });
+      card.addEventListener("mouseleave", function () { card.style.transform = ""; });
+      card.addEventListener("click", function () {
+        var text = card.querySelector(".label").textContent + ": " + card.querySelector(".value").textContent;
+        if (navigator.clipboard) navigator.clipboard.writeText(text);
+        toast.classList.add("show"); setTimeout(function () { toast.classList.remove("show"); }, 1400);
+      });
+    });
+
+    /* Live filter for facts */
+    var filter = document.getElementById("filter");
+    if (filter) filter.addEventListener("input", function () {
+      var q = filter.value.toLowerCase(), shown = 0;
+      document.querySelectorAll(".card").forEach(function (c) {
+        var ok = c.dataset.text.indexOf(q) !== -1; c.classList.toggle("hide", !ok); if (ok) shown++;
+      });
+      document.getElementById("empty").style.display = shown ? "none" : "block";
+    });
+  </script>
+</body>
+</html>
